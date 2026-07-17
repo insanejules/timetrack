@@ -216,3 +216,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# TimeTrack: generierte Icon-Dateien (Quelle: packaging/make_icon.py)
+packaging/TimeTrack.iconset/
+packaging/TimeTrack.icns
+
+# macOS
+.DS_Store

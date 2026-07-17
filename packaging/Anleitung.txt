@@ -1,0 +1,83 @@
+TimeTrack – Kurzanleitung
+=========================
+
+Was ist das?
+TimeTrack ist ein kleines Zeiterfassungs-Widget: Projekt eintippen, Timer
+starten, fertig. Die Zeiten landen in einer PostgreSQL-Datenbank, dazu gibt
+es eine Historie mit Summen und eine kleine Knowledgebase für Notizen zu
+Kunden und Projekten.
+
+Voraussetzung: Mac mit Apple Silicon (M1 oder neuer).
+
+
+1) App installieren
+-------------------
+- Zip entpacken und TimeTrack.app in den Ordner „Programme“ ziehen.
+- Beim ersten Start blockt macOS die App, weil sie nicht bei Apple signiert
+  ist. Einmalig freigeben: Systemeinstellungen → Datenschutz & Sicherheit →
+  ganz unten auf „Dennoch öffnen“ klicken (der Eintrag erscheint dort nach
+  dem ersten Startversuch).
+
+
+2) Datenbank einrichten (einmalig)
+----------------------------------
+Die App legt alle Tabellen beim ersten Start selbst an. Du brauchst nur
+einen laufenden Postgres-Server mit einer leeren Datenbank namens
+„timetrack“.
+
+Variante A – Homebrew (Terminal):
+
+    brew install postgresql@17
+    brew services start postgresql@17
+    /opt/homebrew/opt/postgresql@17/bin/createdb timetrack
+
+  (Falls Homebrew fehlt: https://brew.sh)
+
+Variante B – Postgres.app (ohne Terminal):
+  https://postgresapp.com laden, starten, „Initialize“ klicken. Dann auf
+  eine der angezeigten Datenbanken doppelklicken (öffnet ein Terminal mit
+  psql) und dort eingeben:
+
+    CREATE DATABASE timetrack;
+
+Variante C – gemeinsamer Server:
+  Nichts installieren, einfach im Einstellungs-Dialog der App (Schritt 3)
+  Host, Benutzer und Passwort des gemeinsamen Servers eintragen.
+
+
+3) Erster Start
+---------------
+Beim ersten Start öffnet sich automatisch der Einrichtungs-Dialog und fragt
+die Datenbank-Verbindung ab. Bei einer lokalen Standard-Installation
+(Variante A oder B): alle Felder so lassen (Datenbank: timetrack, Rest
+leer), „Verbindung testen“ und dann „Speichern“ klicken. Fertig – die
+Tabellen legt die App selbst an.
+
+Zu deinen Zugangsdaten: Das Datenbank-Passwort wird verschlüsselt im
+macOS-Schlüsselbund (Keychain) gespeichert, nie in der App oder in
+Konfigurationsdateien. Für GitHub und Claude nutzt die App deine lokalen
+Logins der Kommandozeilen-Tools (gh auth login bzw. claude) – auch dafür
+speichert sie selbst nichts.
+
+
+Nach dem ersten Start zeigt dir die App außerdem einmalig einen
+„Systemcheck“: Er prüft, ob Datenbank, GitHub-CLI und Claude Code bereit
+sind, und zeigt für alles Fehlende die passenden Befehle an. Später
+erreichst du ihn jederzeit über das ℹ️-Symbol im Widget oder das
+Uhr-Menü in der Menüleiste.
+
+
+4) Bedienung in 30 Sekunden
+---------------------------
+- Projekt eintippen, optional eine Beschreibung, dann ▶ Start / ⏹ Stop.
+  Bereits bebuchte Projekte kommen beim Tippen als Vorschlag.
+- Das Schließen des Fensters beendet die App NICHT: Sie läuft als
+  Uhr-Symbol oben in der Menüleiste weiter – dort kannst du den Status
+  sehen, das Widget wieder öffnen, den Timer stoppen oder die App beenden.
+- Läuft beim Beenden noch ein Timer, geht nichts verloren: Die Zeit läuft
+  logisch weiter und wird beim nächsten Start fortgesetzt.
+- Buttons im Widget:
+    📌  Fenster immer im Vordergrund
+    📓  Knowledgebase – Notizen zu Kunden & Projekten
+    📊  Historie – Einträge nach Zeitraum, Summen pro Projekt
+    ⚙️  Einstellungen – Datenbank-Verbindung
