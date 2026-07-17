@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from . import SUPPORT_URL
 from .issue import find_tool
 
 HOWTO_DB = """brew install postgresql@17
@@ -123,6 +124,13 @@ class ChecklistDialog(QDialog):
         note.setWordWrap(True)
         note.setStyleSheet("color: gray; font-size: 11px;")
         layout.addWidget(note)
+
+        support = QLabel(
+            f'Gefällt dir TimeTrack? <a href="{SUPPORT_URL}">'
+            "☕ Buy me a coffee</a>")
+        support.setOpenExternalLinks(True)
+        support.setStyleSheet("font-size: 11px;")
+        layout.addWidget(support)
 
         recheck_btn = QPushButton("Erneut prüfen")
         recheck_btn.clicked.connect(self.refresh)

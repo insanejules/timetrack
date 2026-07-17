@@ -9,6 +9,10 @@
   Knowledgebase und GitHub-Issue-Workflow über Claude Code.
 </p>
 
+<p align="center">
+  <a href="https://buymeacoffee.com/insanejules"><img src="https://img.shields.io/badge/Buy%20me%20a%20coffee-%E2%98%95-FFDD00?logo=buymeacoffee&logoColor=black" alt="Buy Me a Coffee"></a>
+</p>
+
 ---
 
 ## Was ist TimeTrack?
@@ -131,6 +135,12 @@ timetrack/
 ├── packaging/           # Launcher, Icon-Generator, Anleitung
 └── build_app.sh         # PyInstaller-Build + Versand-Zip
 ```
+
+## Unterstützen
+
+TimeTrack ist ein Freizeitprojekt. Wenn es dir den Arbeitstag leichter macht,
+freue ich mich über einen Kaffee: ☕
+[buymeacoffee.com/insanejules](https://buymeacoffee.com/insanejules)
 
 ## Versionierung
 

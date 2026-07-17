@@ -6,6 +6,13 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 Jede Version ist als Git-Tag `vX.Y.Z` markiert; die aktuelle Versionsnummer
 steht in `timetrack/__init__.py`.
 
+## [0.4.1] – 2026-07-18
+
+### Hinzugefügt
+- Buy-Me-a-Coffee-Link: ☕-Eintrag im Menüleisten-Menü, Link im
+  Systemcheck-Dialog, Badge und Support-Abschnitt im README sowie
+  `.github/FUNDING.yml` für den GitHub-Sponsor-Button.
+
 ## [0.4.0] – 2026-07-18
 
 ### Hinzugefügt

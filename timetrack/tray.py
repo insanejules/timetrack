@@ -2,9 +2,11 @@
 
 from datetime import datetime, timezone
 
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QIcon, QPainter, QPen, QPixmap
+from PySide6.QtCore import Qt, QTimer, QUrl
+from PySide6.QtGui import QDesktopServices, QIcon, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon
+
+from . import SUPPORT_URL
 
 
 def _clock_icon() -> QIcon:
@@ -39,6 +41,9 @@ class Tray(QSystemTrayIcon):
         self.stop_action = self._menu.addAction("Timer stoppen && speichern")
         self.stop_action.triggered.connect(self._stop_timer)
         self._menu.addSeparator()
+        coffee_action = self._menu.addAction("☕ Einen Kaffee spendieren…")
+        coffee_action.triggered.connect(
+            lambda: QDesktopServices.openUrl(QUrl(SUPPORT_URL)))
         quit_action = self._menu.addAction("TimeTrack beenden")
         quit_action.triggered.connect(tracker.quit_app)
         from . import __version__
