@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
 )
 
 from .db import Database
+from .i18n import tr
 from .issue import IssueDialog
 
 ROLE_KIND = Qt.ItemDataRole.UserRole        # "customer" | "project"
@@ -33,7 +34,7 @@ class KnowledgeWindow(QWidget):
         self.current_note_id: int | None = None
         self._loading = False
 
-        self.setWindowTitle("TimeTrack – Knowledgebase")
+        self.setWindowTitle(tr("TimeTrack – Knowledgebase"))
         self.resize(820, 520)
 
         # -- linke Seite: Kunden/Projekte-Baum --
@@ -41,7 +42,7 @@ class KnowledgeWindow(QWidget):
         self.tree.setHeaderHidden(True)
         self.tree.currentItemChanged.connect(self._selection_changed)
 
-        new_customer_btn = QPushButton("+ Kunde")
+        new_customer_btn = QPushButton(tr("+ Kunde"))
         new_customer_btn.clicked.connect(self._new_customer)
 
         left = QWidget()
@@ -54,9 +55,9 @@ class KnowledgeWindow(QWidget):
         self.note_list = QListWidget()
         self.note_list.currentItemChanged.connect(self._note_selected)
 
-        self.new_note_btn = QPushButton("+ Notiz")
+        self.new_note_btn = QPushButton(tr("+ Notiz"))
         self.new_note_btn.clicked.connect(self._new_note)
-        self.del_note_btn = QPushButton("Löschen")
+        self.del_note_btn = QPushButton(tr("Löschen"))
         self.del_note_btn.clicked.connect(self._delete_note)
 
         note_btns = QHBoxLayout()
@@ -70,7 +71,7 @@ class KnowledgeWindow(QWidget):
         middle_layout.addLayout(note_btns)
 
         # -- rechte Seite: Editor --
-        self.context_label = QLabel("Wähle links einen Kunden oder ein Projekt.")
+        self.context_label = QLabel(tr("Wähle links einen Kunden oder ein Projekt."))
         self.context_label.setStyleSheet("font-weight: bold;")
 
         self.customer_combo = QComboBox()
@@ -78,19 +79,19 @@ class KnowledgeWindow(QWidget):
         self.customer_row = QWidget()
         customer_row_layout = QHBoxLayout(self.customer_row)
         customer_row_layout.setContentsMargins(0, 0, 0, 0)
-        customer_row_layout.addWidget(QLabel("Kunde:"))
+        customer_row_layout.addWidget(QLabel(tr("Kunde:")))
         customer_row_layout.addWidget(self.customer_combo, 1)
         self.customer_row.hide()
 
         self.title_edit = QLineEdit()
-        self.title_edit.setPlaceholderText("Titel der Notiz…")
+        self.title_edit.setPlaceholderText(tr("Titel der Notiz…"))
         self.body_edit = QPlainTextEdit()
-        self.body_edit.setPlaceholderText("Notiz…")
+        self.body_edit.setPlaceholderText(tr("Notiz…"))
 
-        self.issue_btn = QPushButton("Issue aus Notiz erstellen (mit Claude)…")
+        self.issue_btn = QPushButton(tr("Issue aus Notiz erstellen (mit Claude)…"))
         self.issue_btn.setToolTip(
-            "Öffnet eine Claude-Code-Session, die aus dieser Notiz ein "
-            "GitHub-Issue formuliert")
+            tr("Öffnet eine Claude-Code-Session, die aus dieser Notiz ein "
+               "GitHub-Issue formuliert"))
         self.issue_btn.clicked.connect(self._create_issue)
 
         right = QWidget()
@@ -135,7 +136,7 @@ class KnowledgeWindow(QWidget):
             self.tree.addTopLevelItem(item)
             customer_items[c["id"]] = item
 
-        orphan = QTreeWidgetItem(["— ohne Kunde —"])
+        orphan = QTreeWidgetItem([tr("— ohne Kunde —")])
         orphan.setFlags(orphan.flags() & ~Qt.ItemFlag.ItemIsSelectable)
 
         for p in projects:
@@ -158,13 +159,14 @@ class KnowledgeWindow(QWidget):
     def _reload_customer_combo(self):
         self.customer_combo.blockSignals(True)
         self.customer_combo.clear()
-        self.customer_combo.addItem("— kein Kunde —", None)
+        self.customer_combo.addItem(tr("— kein Kunde —"), None)
         for c in self.db.customers():
             self.customer_combo.addItem(c["name"], c["id"])
         self.customer_combo.blockSignals(False)
 
     def _new_customer(self):
-        name, ok = QInputDialog.getText(self, "Neuer Kunde", "Name des Kunden:")
+        name, ok = QInputDialog.getText(self, tr("Neuer Kunde"),
+                                        tr("Name des Kunden:"))
         if ok and name.strip():
             self.db.ensure_customer(name.strip())
             self.reload()
@@ -177,13 +179,13 @@ class KnowledgeWindow(QWidget):
 
         kind = current.data(0, ROLE_KIND) if current else None
         if kind not in ("customer", "project"):
-            self.context_label.setText("Wähle links einen Kunden oder ein Projekt.")
+            self.context_label.setText(tr("Wähle links einen Kunden oder ein Projekt."))
             self.customer_row.hide()
             self.note_list.clear()
             self._set_editor_enabled(False)
             return
 
-        label = "Kunde" if kind == "customer" else "Projekt"
+        label = tr("Kunde") if kind == "customer" else tr("Projekt")
         self.context_label.setText(f"{label}: {current.text(0)}")
 
         if kind == "project":
@@ -239,9 +241,10 @@ class KnowledgeWindow(QWidget):
             self._set_editor_enabled(False)
             return
         for note in self.db.notes_for(**target):
-            item = QListWidgetItem(note["title"] or "(ohne Titel)")
+            item = QListWidgetItem(note["title"] or tr("(ohne Titel)"))
             item.setData(ROLE_ID, note["id"])
-            item.setToolTip(note["updated_at"].strftime("Geändert: %d.%m.%Y %H:%M"))
+            item.setToolTip(tr("Geändert: {}").format(
+                note["updated_at"].strftime("%d.%m.%Y %H:%M")))
             self.note_list.addItem(item)
             if note["id"] == select_id:
                 self.note_list.setCurrentItem(item)
@@ -279,7 +282,7 @@ class KnowledgeWindow(QWidget):
         if target is None:
             return
         self._save_current_note()
-        note_id = self.db.create_note(**target, title="Neue Notiz")
+        note_id = self.db.create_note(**target, title=tr("Neue Notiz"))
         self._reload_notes(select_id=note_id)
         self.title_edit.selectAll()
         self.title_edit.setFocus()
@@ -288,11 +291,27 @@ class KnowledgeWindow(QWidget):
         if self.current_note_id is None:
             return
         answer = QMessageBox.question(
-            self, "Notiz löschen", "Diese Notiz wirklich löschen?")
+            self, tr("Notiz löschen"), tr("Diese Notiz wirklich löschen?"))
         if answer == QMessageBox.StandardButton.Yes:
             self.db.delete_note(self.current_note_id)
             self.current_note_id = None
             self._reload_notes()
+
+    def _create_issue(self):
+        target = self._current_target()
+        if self.current_note_id is None or not target or "project_id" not in target:
+            return
+        self._save_current_note()
+        project = self.db.project_by_id(target["project_id"])
+        note = {"id": self.current_note_id,
+                "title": self.title_edit.text().strip(),
+                "body": self.body_edit.toPlainText()}
+        dialog = IssueDialog(self.db, project, note, self)
+        if dialog.exec() == IssueDialog.DialogCode.Accepted and dialog.created_issue:
+            issue = dialog.created_issue
+            self.body_edit.appendPlainText(
+                f"\n→ Issue #{issue['number']} ({issue['repo']}): {issue['url']}")
+            self._save_current_note()
 
     def _save_current_note(self):
         if self.current_note_id is None or self._loading:
@@ -304,7 +323,7 @@ class KnowledgeWindow(QWidget):
         )
         item = self.note_list.currentItem()
         if item is not None and item.data(ROLE_ID) == self.current_note_id:
-            item.setText(self.title_edit.text().strip() or "(ohne Titel)")
+            item.setText(self.title_edit.text().strip() or tr("(ohne Titel)"))
 
     def _clear_editor(self):
         self._loading = True
@@ -322,24 +341,8 @@ class KnowledgeWindow(QWidget):
         is_project_note = enabled and "project_id" in target
         self.issue_btn.setEnabled(is_project_note)
         if enabled and not is_project_note:
-            self.issue_btn.setToolTip("Issues brauchen ein Projekt – diese "
-                                      "Notiz hängt an einem Kunden")
-
-    def _create_issue(self):
-        target = self._current_target()
-        if self.current_note_id is None or not target or "project_id" not in target:
-            return
-        self._save_current_note()
-        project = self.db.project_by_id(target["project_id"])
-        note = {"id": self.current_note_id,
-                "title": self.title_edit.text().strip(),
-                "body": self.body_edit.toPlainText()}
-        dialog = IssueDialog(self.db, project, note, self)
-        if dialog.exec() == IssueDialog.DialogCode.Accepted and dialog.created_issue:
-            issue = dialog.created_issue
-            self.body_edit.appendPlainText(
-                f"\n→ Issue #{issue['number']} ({issue['repo']}): {issue['url']}")
-            self._save_current_note()
+            self.issue_btn.setToolTip(
+                tr("Issues brauchen ein Projekt – diese Notiz hängt an einem Kunden"))
 
     def closeEvent(self, event):
         self._save_current_note()

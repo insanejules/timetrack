@@ -24,6 +24,7 @@ rm -rf "$STAGE" dist/TimeTrack-Versand.zip dist/TimeTrack-app.zip
 mkdir -p "$STAGE"
 ditto dist/TimeTrack.app "$STAGE/TimeTrack.app"
 cp packaging/Anleitung.txt "$STAGE/Anleitung.txt"
+cp packaging/Instructions.txt "$STAGE/Instructions.txt"
 ditto -c -k --keepParent "$STAGE" dist/TimeTrack-Versand.zip
 
 echo ""

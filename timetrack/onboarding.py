@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 from . import SUPPORT_URL
+from .i18n import tr
 from .issue import find_tool
 
 HOWTO_DB = """brew install postgresql@17
@@ -22,9 +23,6 @@ brew services start postgresql@17
 
 HOWTO_GH_INSTALL = """brew install gh
 gh auth login"""
-
-HOWTO_CLAUDE = """brew install --cask claude-code
-claude   # einmal starten und anmelden"""
 
 
 def _run(cmd: list[str], timeout: int = 4):
@@ -37,35 +35,38 @@ def _run(cmd: list[str], timeout: int = 4):
 def check_database(db) -> tuple[bool, str, str]:
     """PostgreSQL: erforderlich."""
     if db is None:
-        return False, "Keine Verbindung konfiguriert.", HOWTO_DB
+        return False, tr("Keine Verbindung konfiguriert."), HOWTO_DB
     try:
         db.project_names()
     except Exception as exc:  # noqa: BLE001
-        return False, f"Verbindung gestört: {exc}", HOWTO_DB
+        return False, tr("Verbindung gestört: {}").format(exc), HOWTO_DB
     dsn = re.sub(r"password=\S+", "password=•••", db.dsn)
-    return True, f"Verbunden ({dsn}).", ""
+    return True, tr("Verbunden ({}).").format(dsn), ""
 
 
 def check_gh() -> tuple[bool, str, str]:
     """GitHub-CLI: optional, nur für die Issue-Erstellung."""
     gh = find_tool("gh")
     if gh is None:
-        return False, "GitHub-CLI (gh) ist nicht installiert.", HOWTO_GH_INSTALL
+        return False, tr("GitHub-CLI (gh) ist nicht installiert."), HOWTO_GH_INSTALL
     result = _run([gh, "auth", "status"])
     if result is None:
-        return False, "gh gefunden, Status nicht prüfbar (Timeout).", "gh auth status"
+        return False, tr("gh gefunden, Status nicht prüfbar (Timeout)."), "gh auth status"
     if result.returncode != 0:
-        return False, "gh ist installiert, aber nicht angemeldet.", "gh auth login"
+        return False, tr("gh ist installiert, aber nicht angemeldet."), "gh auth login"
     match = re.search(r"account (\S+)", (result.stdout or "") + (result.stderr or ""))
-    account = f" als {match.group(1)}" if match else ""
-    return True, f"Installiert und angemeldet{account}.", ""
+    if match:
+        return True, tr("Installiert und angemeldet als {}.").format(match.group(1)), ""
+    return True, tr("Installiert und angemeldet."), ""
 
 
 def check_claude() -> tuple[bool, str, str]:
     """Claude Code: optional, nur für den Issue-Assistenten."""
     if find_tool("claude") is None:
-        return False, "Claude Code (claude) ist nicht installiert.", HOWTO_CLAUDE
-    return True, "Installiert – der Login erfolgt beim ersten Aufruf.", ""
+        guide = ("brew install --cask claude-code\n"
+                 + tr("claude   # einmal starten und anmelden"))
+        return False, tr("Claude Code (claude) ist nicht installiert."), guide
+    return True, tr("Installiert – der Login erfolgt beim ersten Aufruf."), ""
 
 
 CHECKS = [
@@ -82,13 +83,14 @@ class ChecklistDialog(QDialog):
     def __init__(self, db, parent=None):
         super().__init__(parent)
         self.db = db
-        self.setWindowTitle("TimeTrack – Systemcheck & Erste Schritte")
+        self.setWindowTitle(tr("TimeTrack – Systemcheck & Erste Schritte"))
         self.setMinimumWidth(560)
 
         intro = QLabel(
-            "Damit alle Funktionen von TimeTrack laufen, braucht dein Mac die "
-            "folgenden Dinge. Die Zeiterfassung selbst funktioniert schon mit "
-            "der Datenbank – GitHub- und Claude-Integration sind optional.")
+            tr("Damit alle Funktionen von TimeTrack laufen, braucht dein Mac "
+               "die folgenden Dinge. Die Zeiterfassung selbst funktioniert "
+               "schon mit der Datenbank – GitHub- und Claude-Integration sind "
+               "optional."))
         intro.setWordWrap(True)
 
         self._rows: list[tuple[QLabel, QLabel, QLabel]] = []
@@ -100,7 +102,8 @@ class ChecklistDialog(QDialog):
             frame.setFrameShape(QFrame.Shape.StyledPanel)
             box = QVBoxLayout(frame)
 
-            head = QLabel(f"<b>{title}</b> <span style='color:gray'>({level})</span>")
+            head = QLabel(f"<b>{tr(title)}</b> "
+                          f"<span style='color:gray'>({tr(level)})</span>")
             status = QLabel()
             status.setWordWrap(True)
             howto = QLabel()
@@ -118,23 +121,23 @@ class ChecklistDialog(QDialog):
             self._rows.append((head, status, howto))
 
         note = QLabel(
-            "Hinweis: TimeTrack speichert keine Zugangsdaten. Das DB-Passwort "
-            "liegt verschlüsselt in deinem macOS-Schlüsselbund, GitHub und "
-            "Claude nutzen deine lokalen CLI-Logins.")
+            tr("Hinweis: TimeTrack speichert keine Zugangsdaten. Das "
+               "DB-Passwort liegt verschlüsselt in deinem macOS-Schlüsselbund, "
+               "GitHub und Claude nutzen deine lokalen CLI-Logins."))
         note.setWordWrap(True)
         note.setStyleSheet("color: gray; font-size: 11px;")
         layout.addWidget(note)
 
         support = QLabel(
-            f'Gefällt dir TimeTrack? <a href="{SUPPORT_URL}">'
-            "☕ Buy me a coffee</a>")
+            tr("Gefällt dir TimeTrack? <a href=\"{}\">☕ Buy me a coffee</a>")
+            .format(SUPPORT_URL))
         support.setOpenExternalLinks(True)
         support.setStyleSheet("font-size: 11px;")
         layout.addWidget(support)
 
-        recheck_btn = QPushButton("Erneut prüfen")
+        recheck_btn = QPushButton(tr("Erneut prüfen"))
         recheck_btn.clicked.connect(self.refresh)
-        close_btn = QPushButton("Schließen")
+        close_btn = QPushButton(tr("Schließen"))
         close_btn.setDefault(True)
         close_btn.clicked.connect(self.accept)
         buttons = QHBoxLayout()

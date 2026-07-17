@@ -6,7 +6,8 @@ from PySide6.QtCore import Qt, QTimer, QUrl
 from PySide6.QtGui import QDesktopServices, QIcon, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon
 
-from . import SUPPORT_URL
+from . import SUPPORT_URL, __version__
+from .i18n import tr
 
 
 def _clock_icon() -> QIcon:
@@ -31,23 +32,22 @@ class Tray(QSystemTrayIcon):
         self.tracker = tracker
 
         self._menu = QMenu()
-        self.status_action = self._menu.addAction("Kein Timer aktiv")
+        self.status_action = self._menu.addAction(tr("Kein Timer aktiv"))
         self.status_action.setEnabled(False)
         self._menu.addSeparator()
-        show_action = self._menu.addAction("Widget anzeigen")
+        show_action = self._menu.addAction(tr("Widget anzeigen"))
         show_action.triggered.connect(self._show_tracker)
-        check_action = self._menu.addAction("Systemcheck && Anleitung…")
+        check_action = self._menu.addAction(tr("Systemcheck && Anleitung…"))
         check_action.triggered.connect(tracker.show_onboarding)
-        self.stop_action = self._menu.addAction("Timer stoppen && speichern")
+        self.stop_action = self._menu.addAction(tr("Timer stoppen && speichern"))
         self.stop_action.triggered.connect(self._stop_timer)
         self._menu.addSeparator()
-        coffee_action = self._menu.addAction("☕ Einen Kaffee spendieren…")
+        coffee_action = self._menu.addAction(tr("☕ Einen Kaffee spendieren…"))
         coffee_action.triggered.connect(
             lambda: QDesktopServices.openUrl(QUrl(SUPPORT_URL)))
-        quit_action = self._menu.addAction("TimeTrack beenden")
+        quit_action = self._menu.addAction(tr("TimeTrack beenden"))
         quit_action.triggered.connect(tracker.quit_app)
-        from . import __version__
-        version_action = self._menu.addAction(f"Version {__version__}")
+        version_action = self._menu.addAction(tr("Version {}").format(__version__))
         version_action.setEnabled(False)
         self.setContextMenu(self._menu)
         self._menu.aboutToShow.connect(self._refresh)
@@ -66,13 +66,13 @@ class Tray(QSystemTrayIcon):
             elapsed = int(
                 (datetime.now(timezone.utc) - self.tracker.started_at).total_seconds())
             text = f"{self.tracker.project.currentText()} – {fmt_hms(elapsed)}"
-            self.status_action.setText(f"Läuft: {text}")
+            self.status_action.setText(tr("Läuft: {}").format(text))
             self.stop_action.setEnabled(True)
-            self.setToolTip(f"TimeTrack – {text}")
+            self.setToolTip(tr("TimeTrack – {}").format(text))
         else:
-            self.status_action.setText("Kein Timer aktiv")
+            self.status_action.setText(tr("Kein Timer aktiv"))
             self.stop_action.setEnabled(False)
-            self.setToolTip("TimeTrack – kein Timer aktiv")
+            self.setToolTip(tr("TimeTrack – kein Timer aktiv"))
 
     def _show_tracker(self):
         self.tracker.show()

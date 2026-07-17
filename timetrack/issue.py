@@ -30,6 +30,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from .i18n import EN, language, tr
+
 SESSION_DIR = os.path.expanduser(
     "~/Library/Application Support/TimeTrack/claude-sessions")
 
@@ -49,7 +51,7 @@ def find_tool(name: str) -> str | None:
     return None
 
 
-SEED_PROMPT = """\
+SEED_PROMPT_DE = """\
 Du hilfst mir, aus einer Notiz ein gutes GitHub-Issue zu formulieren.
 
 Notiz-Titel: {title}
@@ -61,13 +63,21 @@ Kontext, ggf. Akzeptanzkriterien). Stelle mir Rückfragen, wenn etwas unklar
 ist. Antworte auf Deutsch und fasse dich kompakt – reine Textarbeit, du musst
 keine Dateien lesen oder Tools benutzen."""
 
-FINALIZE_PROMPT = """\
+FINALIZE_PROMPT_DE = """\
 Gib jetzt ausschließlich das finale Issue aus, exakt in diesem Format ohne
 weitere Kommentare:
 
 TITEL: <einzeiliger Issue-Titel>
 
 <Markdown-Body des Issues>"""
+
+
+def seed_prompt() -> str:
+    return EN["SEED_PROMPT"] if language() == "en" else SEED_PROMPT_DE
+
+
+def finalize_prompt() -> str:
+    return EN["FINALIZE_PROMPT"] if language() == "en" else FINALIZE_PROMPT_DE
 
 
 class IssueDialog(QDialog):
@@ -82,7 +92,7 @@ class IssueDialog(QDialog):
         self.created_issue: dict | None = None
         self._transcript: list[str] = []
 
-        self.setWindowTitle(f"Issue erstellen – {project['name']}")
+        self.setWindowTitle(tr("Issue erstellen – {}").format(project["name"]))
         self.resize(760, 640)
 
         # -- oben: Repo (eigene Repos werden per gh geladen, Freitext möglich) --
@@ -90,10 +100,10 @@ class IssueDialog(QDialog):
         self.repo_edit.setEditable(True)
         self.repo_edit.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
         self.repo_edit.lineEdit().setPlaceholderText(
-            "owner/repo  (z. B. firma/projekt)")
+            tr("owner/repo  (z. B. firma/projekt)"))
         self.repo_edit.setCurrentText(project.get("github_repo") or "")
         repo_row = QHBoxLayout()
-        repo_row.addWidget(QLabel("GitHub-Repo:"))
+        repo_row.addWidget(QLabel(tr("GitHub-Repo:")))
         repo_row.addWidget(self.repo_edit, 1)
         self._load_repos()
 
@@ -103,13 +113,14 @@ class IssueDialog(QDialog):
 
         self.chat_input = QPlainTextEdit()
         self.chat_input.setPlaceholderText(
-            "Nachricht an Claude … (z. B. „mach den Titel kürzer“)")
+            tr("Nachricht an Claude … (z. B. „mach den Titel kürzer“)"))
         self.chat_input.setMaximumHeight(70)
-        self.send_btn = QPushButton("Senden")
+        self.send_btn = QPushButton(tr("Senden"))
         self.send_btn.clicked.connect(self._send_message)
-        self.finalize_btn = QPushButton("Entwurf übernehmen ⬇")
+        self.finalize_btn = QPushButton(tr("Entwurf übernehmen ⬇"))
         self.finalize_btn.setToolTip(
-            "Claude gibt den finalen Titel + Body aus, die Felder unten werden gefüllt")
+            tr("Claude gibt den finalen Titel + Body aus, die Felder unten "
+               "werden gefüllt"))
         self.finalize_btn.clicked.connect(self._finalize)
 
         input_row = QHBoxLayout()
@@ -127,11 +138,11 @@ class IssueDialog(QDialog):
 
         # -- unten: finales Issue --
         self.title_edit = QLineEdit()
-        self.title_edit.setPlaceholderText("Issue-Titel (aus Entwurf oder manuell)")
+        self.title_edit.setPlaceholderText(tr("Issue-Titel (aus Entwurf oder manuell)"))
         self.body_edit = QPlainTextEdit()
-        self.body_edit.setPlaceholderText("Issue-Body (Markdown)")
+        self.body_edit.setPlaceholderText(tr("Issue-Body (Markdown)"))
 
-        self.create_btn = QPushButton("Issue auf GitHub erstellen")
+        self.create_btn = QPushButton(tr("Issue auf GitHub erstellen"))
         self.create_btn.clicked.connect(self._create_on_github)
 
         final_widget = QWidget()
@@ -162,11 +173,12 @@ class IssueDialog(QDialog):
             self.chat_view.verticalScrollBar().maximum())
 
     def _start_session(self):
-        seed = SEED_PROMPT.format(
-            title=self.note.get("title") or "(ohne Titel)",
-            body=self.note.get("body") or "(leer)")
-        self._append("Du", f"*Notiz „{self.note.get('title') or '(ohne Titel)'}“ "
-                           "an Claude übergeben – Issue-Entwurf angefragt.*")
+        seed = seed_prompt().format(
+            title=self.note.get("title") or tr("(ohne Titel)"),
+            body=self.note.get("body") or tr("(leer)"))
+        self._append(tr("Du"),
+                     tr("*Notiz „{}“ an Claude übergeben – Issue-Entwurf "
+                        "angefragt.*").format(self.note.get("title") or tr("(ohne Titel)")))
         self._run_claude(seed)
 
     def _send_message(self):
@@ -174,22 +186,22 @@ class IssueDialog(QDialog):
         if not text or self.proc is not None:
             return
         self.chat_input.clear()
-        self._append("Du", text)
+        self._append(tr("Du"), text)
         self._run_claude(text)
 
     def _finalize(self):
         if self.proc is not None:
             return
-        self._append("Du", "*Finalen Entwurf angefordert …*")
-        self._run_claude(FINALIZE_PROMPT, finalize=True)
+        self._append(tr("Du"), tr("*Finalen Entwurf angefordert …*"))
+        self._run_claude(finalize_prompt(), finalize=True)
 
     def _run_claude(self, prompt: str, finalize: bool = False):
         claude = find_tool("claude")
         if claude is None:
             QMessageBox.critical(
-                self, "claude nicht gefunden",
-                "Das claude-CLI wurde nicht gefunden. Installation:\n"
-                "  brew install --cask claude-code")
+                self, tr("claude nicht gefunden"),
+                tr("Das claude-CLI wurde nicht gefunden. Installation:\n"
+                   "  brew install --cask claude-code"))
             return
         os.makedirs(SESSION_DIR, exist_ok=True)
 
@@ -213,7 +225,7 @@ class IssueDialog(QDialog):
 
         result_text, error = self._parse_result(exit_code, stdout, stderr)
         if error:
-            self._append("Fehler", error)
+            self._append(tr("Fehler"), error)
             return
 
         if finalize:
@@ -221,8 +233,9 @@ class IssueDialog(QDialog):
             if title:
                 self.title_edit.setText(title)
                 self.body_edit.setPlainText(body)
-                self._append("Claude", "*Entwurf unten übernommen – bei Bedarf "
-                                       "anpassen und auf GitHub erstellen.*")
+                self._append("Claude",
+                             tr("*Entwurf unten übernommen – bei Bedarf "
+                                "anpassen und auf GitHub erstellen.*"))
             else:
                 self._append("Claude", result_text)
         else:
@@ -236,15 +249,16 @@ class IssueDialog(QDialog):
                 if isinstance(e, dict) and e.get("type") == "result")
         except (json.JSONDecodeError, StopIteration):
             detail = stderr.strip() or stdout.strip()[:500] or f"Exit-Code {exit_code}"
-            return None, f"claude-Aufruf fehlgeschlagen:\n\n```\n{detail}\n```"
+            return None, tr("claude-Aufruf fehlgeschlagen:\n\n```\n{}\n```").format(detail)
         if result.get("is_error"):
-            return None, f"Claude meldet einen Fehler:\n\n{result.get('result', '')}"
+            return None, tr("Claude meldet einen Fehler:\n\n{}").format(
+                result.get("result", ""))
         self.session_id = result.get("session_id", self.session_id)
         return result.get("result", ""), None
 
     @staticmethod
     def _parse_final_issue(text: str) -> tuple[str | None, str]:
-        match = re.search(r"^TITEL:\s*(.+)$", text, re.MULTILINE)
+        match = re.search(r"^(?:TITEL|TITLE):\s*(.+)$", text, re.MULTILINE)
         if not match:
             return None, ""
         title = match.group(1).strip()
@@ -257,7 +271,7 @@ class IssueDialog(QDialog):
             widget.setEnabled(not busy)
         if busy:
             self.chat_view.setMarkdown(
-                "\n\n---\n\n".join(self._transcript + ["*Claude arbeitet …*"]))
+                "\n\n---\n\n".join(self._transcript + [tr("*Claude arbeitet …*")]))
             self.chat_view.verticalScrollBar().setValue(
                 self.chat_view.verticalScrollBar().maximum())
 
@@ -300,26 +314,26 @@ class IssueDialog(QDialog):
         body = self.body_edit.toPlainText().strip()
 
         if not re.fullmatch(r"[\w.-]+/[\w.-]+", repo):
-            QMessageBox.warning(self, "Repo fehlt",
-                                "Bitte das GitHub-Repo als „owner/repo“ angeben.")
+            QMessageBox.warning(self, tr("Repo fehlt"),
+                                tr("Bitte das GitHub-Repo als „owner/repo“ angeben."))
             return
         if not title:
-            QMessageBox.warning(self, "Titel fehlt",
-                                "Bitte zuerst einen Issue-Titel eintragen "
-                                "(„Entwurf übernehmen“ oder manuell).")
+            QMessageBox.warning(self, tr("Titel fehlt"),
+                                tr("Bitte zuerst einen Issue-Titel eintragen "
+                                   "(„Entwurf übernehmen“ oder manuell)."))
             return
 
         gh = find_tool("gh")
         if gh is None:
             QMessageBox.critical(
-                self, "gh nicht gefunden",
-                "Das GitHub-CLI wurde nicht gefunden. Installation:\n"
-                "  brew install gh && gh auth login")
+                self, tr("gh nicht gefunden"),
+                tr("Das GitHub-CLI wurde nicht gefunden. Installation:\n"
+                   "  brew install gh && gh auth login"))
             return
 
         with tempfile.NamedTemporaryFile(
                 "w", suffix=".md", delete=False, encoding="utf-8") as tmp:
-            tmp.write(body or "(kein Body)")
+            tmp.write(body or tr("(kein Body)"))
             body_file = tmp.name
 
         self.create_btn.setEnabled(False)
@@ -339,8 +353,9 @@ class IssueDialog(QDialog):
         url_match = re.search(r"https://github\.com/\S+/issues/(\d+)", stdout)
         if exit_code != 0 or not url_match:
             QMessageBox.critical(
-                self, "GitHub-Fehler",
-                f"gh issue create ist fehlgeschlagen:\n\n{stderr.strip() or stdout.strip()}")
+                self, tr("GitHub-Fehler"),
+                tr("gh issue create ist fehlgeschlagen:\n\n{}").format(
+                    stderr.strip() or stdout.strip()))
             return
 
         url = url_match.group(0)
@@ -352,10 +367,10 @@ class IssueDialog(QDialog):
         self.created_issue = {"id": issue_id, "repo": repo, "number": number,
                               "title": title, "url": url}
         QMessageBox.information(
-            self, "Issue erstellt",
-            f"Issue #{number} wurde angelegt und in TimeTrack dokumentiert:\n\n{url}\n\n"
-            "Im Timer-Widget kannst du Arbeitszeit jetzt direkt auf dieses "
-            "Issue buchen.")
+            self, tr("Issue erstellt"),
+            tr("Issue #{} wurde angelegt und in TimeTrack dokumentiert:"
+               "\n\n{}\n\nIm Timer-Widget kannst du Arbeitszeit jetzt direkt "
+               "auf dieses Issue buchen.").format(number, url))
         self.accept()
 
     def closeEvent(self, event):

@@ -9,6 +9,10 @@ Kunden und Projekten.
 
 Voraussetzung: Mac mit Apple Silicon (M1 oder neuer).
 
+Sprache: Die App folgt deiner macOS-Sprache (Deutsch/Englisch). Umstellen
+geht jederzeit in den Einstellungen (⚙️ → Sprache). English version of this
+guide: see Instructions.txt.
+
 
 1) App installieren
 -------------------

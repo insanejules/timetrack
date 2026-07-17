@@ -6,6 +6,16 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 Jede Version ist als Git-Tag `vX.Y.Z` markiert; die aktuelle Versionsnummer
 steht in `timetrack/__init__.py`.
 
+## [0.5.0] – 2026-07-18
+
+### Hinzugefügt
+- Zweisprachigkeit: komplette Oberfläche auf Deutsch und Englisch, Auswahl
+  in den Einstellungen (System/Deutsch/English, greift nach Neustart);
+  Claude-Prompts folgen der Sprache.
+- Englische Kurzanleitung (`packaging/Instructions.txt`, liegt dem
+  Versand-Zip bei) und englisches README (`README.en.md`) mit
+  Sprachumschalt-Links in beiden READMEs.
+
 ## [0.4.1] – 2026-07-18
 
 ### Hinzugefügt

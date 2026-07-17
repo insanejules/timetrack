@@ -14,6 +14,7 @@ import psycopg
 from psycopg.conninfo import make_conninfo
 from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import (
+    QComboBox,
     QDialog,
     QDialogButtonBox,
     QFormLayout,
@@ -25,8 +26,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-ORG = "timetrack"
-APP = "TimeTrack"
+from . import APP, ORG, __version__
+from .i18n import set_stored_language, stored_language, tr
 
 DEFAULTS = {
     "host": "",          # leer = lokaler Unix-Socket
@@ -132,30 +133,38 @@ class SettingsDialog(QDialog):
     def __init__(self, db, parent=None, first_run: bool = False):
         super().__init__(parent)
         self.db = db
-        self.setWindowTitle("TimeTrack – Einrichtung" if first_run
-                            else "TimeTrack – Einstellungen")
+        self.setWindowTitle(tr("TimeTrack – Einrichtung") if first_run
+                            else tr("TimeTrack – Einstellungen"))
         self.setMinimumWidth(440)
 
         values = load_settings()
 
         self.host = QLineEdit(values["host"])
-        self.host.setPlaceholderText("leer = lokaler Socket (Homebrew-Postgres)")
+        self.host.setPlaceholderText(tr("leer = lokaler Socket (Homebrew-Postgres)"))
         self.port = QSpinBox()
         self.port.setRange(1, 65535)
         self.port.setValue(values["port"])
         self.dbname = QLineEdit(values["dbname"])
         self.user = QLineEdit(values["user"])
-        self.user.setPlaceholderText("leer = aktueller macOS-Benutzer")
+        self.user.setPlaceholderText(tr("leer = aktueller macOS-Benutzer"))
         self.password = QLineEdit(values["password"])
         self.password.setEchoMode(QLineEdit.EchoMode.Password)
-        self.password.setPlaceholderText("leer = kein Passwort")
+        self.password.setPlaceholderText(tr("leer = kein Passwort"))
+
+        self.language_combo = QComboBox()
+        self.language_combo.addItem(tr("System (automatisch)"), "system")
+        self.language_combo.addItem("Deutsch", "de")
+        self.language_combo.addItem("English", "en")
+        idx = self.language_combo.findData(stored_language())
+        self.language_combo.setCurrentIndex(max(0, idx))
 
         form = QFormLayout()
-        form.addRow("Host:", self.host)
-        form.addRow("Port:", self.port)
-        form.addRow("Datenbank:", self.dbname)
-        form.addRow("Benutzer:", self.user)
-        form.addRow("Passwort:", self.password)
+        form.addRow(tr("Host:"), self.host)
+        form.addRow(tr("Port:"), self.port)
+        form.addRow(tr("Datenbank:"), self.dbname)
+        form.addRow(tr("Benutzer:"), self.user)
+        form.addRow(tr("Passwort:"), self.password)
+        form.addRow(tr("Sprache / Language:"), self.language_combo)
 
         self.preview = QLabel()
         self.preview.setStyleSheet("color: gray; font-size: 11px;")
@@ -168,10 +177,10 @@ class SettingsDialog(QDialog):
         layout = QVBoxLayout(self)
         if first_run:
             welcome = QLabel(
-                "<b>Willkommen bei TimeTrack!</b><br>"
-                "Richte einmalig die Verbindung zu deiner PostgreSQL-Datenbank "
-                "ein. Für einen lokalen Homebrew-Postgres passen die Vorgaben – "
-                "einfach „Verbindung testen“ und dann „Speichern“.")
+                tr("<b>Willkommen bei TimeTrack!</b><br>Richte einmalig die "
+                   "Verbindung zu deiner PostgreSQL-Datenbank ein. Für einen "
+                   "lokalen Homebrew-Postgres passen die Vorgaben – einfach "
+                   "„Verbindung testen“ und dann „Speichern“."))
             welcome.setWordWrap(True)
             layout.addWidget(welcome)
         layout.addLayout(form)
@@ -179,31 +188,32 @@ class SettingsDialog(QDialog):
 
         if os.environ.get("TIMETRACK_DB"):
             env_hint = QLabel(
-                "⚠️ Die Umgebungsvariable TIMETRACK_DB ist gesetzt und überschreibt "
-                "diese Einstellungen beim nächsten Start.")
+                tr("⚠️ Die Umgebungsvariable TIMETRACK_DB ist gesetzt und "
+                   "überschreibt diese Einstellungen beim nächsten Start."))
             env_hint.setWordWrap(True)
             layout.addWidget(env_hint)
 
         pw_hint = QLabel(
-            "Das Passwort wird verschlüsselt im macOS-Schlüsselbund (Keychain) "
-            "gespeichert – nie in der App oder in Konfigurationsdateien. Für den "
-            "lokalen Homebrew-Postgres ist keins nötig.")
+            tr("Das Passwort wird verschlüsselt im macOS-Schlüsselbund "
+               "(Keychain) gespeichert – nie in der App oder in "
+               "Konfigurationsdateien. Für den lokalen Homebrew-Postgres ist "
+               "keins nötig."))
         pw_hint.setStyleSheet("color: gray; font-size: 11px;")
         pw_hint.setWordWrap(True)
         layout.addWidget(pw_hint)
 
-        from . import __version__
         version_label = QLabel(f"TimeTrack v{__version__}")
         version_label.setStyleSheet("color: gray; font-size: 11px;")
         layout.addWidget(version_label)
 
-        test_btn = QPushButton("Verbindung testen")
+        test_btn = QPushButton(tr("Verbindung testen"))
         test_btn.clicked.connect(self._test_connection)
 
         buttons = QDialogButtonBox()
         buttons.addButton(test_btn, QDialogButtonBox.ButtonRole.ActionRole)
-        save_btn = buttons.addButton("Speichern", QDialogButtonBox.ButtonRole.AcceptRole)
-        buttons.addButton("Abbrechen", QDialogButtonBox.ButtonRole.RejectRole)
+        save_btn = buttons.addButton(tr("Speichern"),
+                                     QDialogButtonBox.ButtonRole.AcceptRole)
+        buttons.addButton(tr("Abbrechen"), QDialogButtonBox.ButtonRole.RejectRole)
         save_btn.setDefault(True)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
@@ -219,18 +229,20 @@ class SettingsDialog(QDialog):
         }
 
     def _update_preview(self):
-        self.preview.setText(
-            "Verbindung: " + dsn_from_values(self._values(), with_password=False))
+        self.preview.setText(tr("Verbindung: {}").format(
+            dsn_from_values(self._values(), with_password=False)))
 
     def _test_connection(self):
         try:
             with psycopg.connect(dsn_from_values(self._values()), connect_timeout=5) as conn:
                 version = conn.execute("SELECT version()").fetchone()[0]
             QMessageBox.information(
-                self, "Verbindung OK", f"Verbindung erfolgreich:\n\n{version}")
+                self, tr("Verbindung OK"),
+                tr("Verbindung erfolgreich:\n\n{}").format(version))
         except Exception as exc:  # noqa: BLE001
             QMessageBox.warning(
-                self, "Verbindung fehlgeschlagen", f"Keine Verbindung möglich:\n\n{exc}")
+                self, tr("Verbindung fehlgeschlagen"),
+                tr("Keine Verbindung möglich:\n\n{}").format(exc))
 
     def accept(self):
         values = self._values()
@@ -244,9 +256,16 @@ class SettingsDialog(QDialog):
                     pass
         except Exception as exc:  # noqa: BLE001
             QMessageBox.critical(
-                self, "Verbindung fehlgeschlagen",
-                "Die neue Verbindung konnte nicht aufgebaut werden – die bisherige "
-                f"bleibt aktiv:\n\n{exc}")
+                self, tr("Verbindung fehlgeschlagen"),
+                tr("Die neue Verbindung konnte nicht aufgebaut werden – die "
+                   "bisherige bleibt aktiv:\n\n{}").format(exc))
             return  # Dialog offen lassen, damit Eingaben korrigiert werden können
         save_settings(values)
+
+        chosen_language = self.language_combo.currentData()
+        if chosen_language != stored_language():
+            set_stored_language(chosen_language)
+            QMessageBox.information(
+                self, tr("Sprache geändert"),
+                tr("Die Sprachänderung gilt nach einem Neustart von TimeTrack."))
         super().accept()

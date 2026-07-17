@@ -1,4 +1,4 @@
-"""Historie & Auswertung: Einträge nach Zeitraum, Summen pro Projekt."""
+"""Historie & Auswertung: Einträge nach Zeitraum, Summen pro Projekt/Issue."""
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from .db import Database
+from .i18n import tr
 
 # Feste, sichere SQL-Fragmente für die Zeitraum-Auswahl
 PERIODS = [
@@ -40,15 +41,15 @@ class HistoryWindow(QWidget):
         self.db = db
         self._loading = False
 
-        self.setWindowTitle("TimeTrack – Historie")
+        self.setWindowTitle(tr("TimeTrack – Historie"))
         self.resize(860, 520)
 
         self.period = QComboBox()
         for label, _sql in PERIODS:
-            self.period.addItem(label)
+            self.period.addItem(tr(label))
         self.period.currentIndexChanged.connect(self.reload)
 
-        refresh_btn = QPushButton("Aktualisieren")
+        refresh_btn = QPushButton(tr("Aktualisieren"))
         refresh_btn.clicked.connect(self.reload)
 
         self.total_label = QLabel()
@@ -57,7 +58,7 @@ class HistoryWindow(QWidget):
         self.total_label.setFont(font)
 
         top = QHBoxLayout()
-        top.addWidget(QLabel("Zeitraum:"))
+        top.addWidget(QLabel(tr("Zeitraum:")))
         top.addWidget(self.period)
         top.addWidget(refresh_btn)
         top.addStretch()
@@ -66,14 +67,15 @@ class HistoryWindow(QWidget):
         # -- Tab 1: Einzeleinträge --
         self.table = QTableWidget(0, 7)
         self.table.setHorizontalHeaderLabels(
-            ["Datum", "Zeit", "Dauer", "Projekt", "Kunde", "Issue", "Beschreibung"])
+            [tr("Datum"), tr("Zeit"), tr("Dauer"), tr("Projekt"), tr("Kunde"),
+             tr("Issue"), tr("Beschreibung")])
         self.table.horizontalHeader().setSectionResizeMode(
             6, QHeaderView.ResizeMode.Stretch)
         self.table.verticalHeader().hide()
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.itemChanged.connect(self._description_edited)
 
-        delete_btn = QPushButton("Ausgewählte löschen")
+        delete_btn = QPushButton(tr("Ausgewählte löschen"))
         delete_btn.clicked.connect(self._delete_selected)
 
         entries_tab = QWidget()
@@ -84,7 +86,7 @@ class HistoryWindow(QWidget):
 
         # -- Tab 2: Summen pro Projekt --
         self.totals_table = QTableWidget(0, 2)
-        self.totals_table.setHorizontalHeaderLabels(["Projekt", "Summe"])
+        self.totals_table.setHorizontalHeaderLabels([tr("Projekt"), tr("Summe")])
         self.totals_table.horizontalHeader().setSectionResizeMode(
             0, QHeaderView.ResizeMode.Stretch)
         self.totals_table.verticalHeader().hide()
@@ -92,16 +94,17 @@ class HistoryWindow(QWidget):
 
         # -- Tab 3: Summen pro Issue --
         self.issue_table = QTableWidget(0, 3)
-        self.issue_table.setHorizontalHeaderLabels(["Issue", "Projekt", "Summe"])
+        self.issue_table.setHorizontalHeaderLabels(
+            [tr("Issue"), tr("Projekt"), tr("Summe")])
         self.issue_table.horizontalHeader().setSectionResizeMode(
             0, QHeaderView.ResizeMode.Stretch)
         self.issue_table.verticalHeader().hide()
         self.issue_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
 
         tabs = QTabWidget()
-        tabs.addTab(entries_tab, "Einträge")
-        tabs.addTab(self.totals_table, "Pro Projekt")
-        tabs.addTab(self.issue_table, "Pro Issue")
+        tabs.addTab(entries_tab, tr("Einträge"))
+        tabs.addTab(self.totals_table, tr("Pro Projekt"))
+        tabs.addTab(self.issue_table, tr("Pro Issue"))
 
         layout = QVBoxLayout(self)
         layout.addLayout(top)
@@ -122,7 +125,8 @@ class HistoryWindow(QWidget):
         for row, e in enumerate(entries):
             start = e["started_at"].astimezone()
             end = e["ended_at"].astimezone() if e["ended_at"] else None
-            time_str = start.strftime("%H:%M") + " – " + (end.strftime("%H:%M") if end else "läuft")
+            time_str = start.strftime("%H:%M") + " – " + (
+                end.strftime("%H:%M") if end else tr("läuft"))
             total += float(e["secs"])
 
             issue_str = ""
@@ -148,7 +152,7 @@ class HistoryWindow(QWidget):
         self.table.resizeColumnsToContents()
         self.table.horizontalHeader().setSectionResizeMode(
             6, QHeaderView.ResizeMode.Stretch)
-        self.total_label.setText(f"Gesamt: {fmt_hours(total)}")
+        self.total_label.setText(tr("Gesamt: {}").format(fmt_hours(total)))
 
         totals = self.db.project_totals(since)
         self.totals_table.setRowCount(len(totals))
@@ -176,8 +180,8 @@ class HistoryWindow(QWidget):
         if not rows:
             return
         answer = QMessageBox.question(
-            self, "Einträge löschen",
-            f"{len(rows)} Eintrag/Einträge wirklich löschen?")
+            self, tr("Einträge löschen"),
+            tr("{} Eintrag/Einträge wirklich löschen?").format(len(rows)))
         if answer != QMessageBox.StandardButton.Yes:
             return
         for row in rows:

@@ -2,9 +2,12 @@
 
 import sys
 
+from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QApplication, QMessageBox, QSystemTrayIcon
 
+from . import APP, ORG
 from .db import Database
+from .i18n import tr
 from .settings import SettingsDialog, is_configured
 from .tracker import TrackerWidget
 from .tray import Tray
@@ -27,10 +30,10 @@ def main() -> int:
         except Exception as exc:  # noqa: BLE001 - Fehler dem Nutzer anzeigen
             QMessageBox.critical(
                 None,
-                "TimeTrack – Datenbankfehler",
-                "Konnte keine Verbindung zur Postgres-Datenbank aufbauen:\n\n"
-                f"{exc}\n\nLäuft Postgres? Im nächsten Dialog kannst du die "
-                "Verbindung anpassen.",
+                tr("TimeTrack – Datenbankfehler"),
+                tr("Konnte keine Verbindung zur Postgres-Datenbank aufbauen:"
+                   "\n\n{}\n\nLäuft Postgres? Im nächsten Dialog kannst du "
+                   "die Verbindung anpassen.").format(exc),
             )
             dialog = SettingsDialog(None)
             if dialog.exec() != SettingsDialog.DialogCode.Accepted:
@@ -48,8 +51,6 @@ def main() -> int:
     widget.show()
 
     # Einmalig nach dem ersten Start: zeigen, was die App alles braucht
-    from PySide6.QtCore import QSettings
-    from .settings import APP, ORG
     prefs = QSettings(ORG, APP)
     if not prefs.value("onboarding/done", False, bool):
         widget.show_onboarding()

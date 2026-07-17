@@ -1,0 +1,82 @@
+TimeTrack – Quick Guide
+=======================
+
+What is this?
+TimeTrack is a small time-tracking widget: type a project, start the timer,
+done. All times are stored in a PostgreSQL database, and there is a history
+with totals as well as a small knowledge base for notes on customers and
+projects.
+
+Requirement: Mac with Apple Silicon (M1 or newer).
+
+Language: The app follows your macOS language (German/English). You can
+change it anytime in the settings (⚙️ → Language).
+
+
+1) Install the app
+------------------
+- Unzip the archive and drag TimeTrack.app into your "Applications" folder.
+- On first launch macOS blocks the app because it is not signed by Apple.
+  Allow it once: System Settings → Privacy & Security → scroll down and
+  click "Open Anyway" (the entry appears there after the first launch
+  attempt).
+
+
+2) Set up the database (once)
+-----------------------------
+The app creates all tables itself on first start. You only need a running
+Postgres server with an empty database called "timetrack".
+
+Option A – Homebrew (Terminal):
+
+    brew install postgresql@17
+    brew services start postgresql@17
+    /opt/homebrew/opt/postgresql@17/bin/createdb timetrack
+
+  (If Homebrew is missing: https://brew.sh)
+
+Option B – Postgres.app (no Terminal needed):
+  Download https://postgresapp.com, start it, click "Initialize". Then
+  double-click one of the shown databases (opens a terminal with psql) and
+  enter:
+
+    CREATE DATABASE timetrack;
+
+Option C – shared server:
+  Install nothing; simply enter host, user and password of the shared
+  server in the app's settings dialog (step 3).
+
+
+3) First start
+--------------
+On first start a setup dialog asks for the database connection. For a local
+standard installation (option A or B): leave all fields as they are
+(database: timetrack, rest empty), click "Test connection" and then "Save".
+Done – the app creates the tables itself.
+
+About your credentials: the database password is stored encrypted in the
+macOS Keychain, never in the app or in configuration files. For GitHub and
+Claude the app uses your local command-line logins (gh auth login and
+claude) – it stores nothing for these either.
+
+After the first start the app also shows a one-time "system check": it
+verifies that database, GitHub CLI and Claude Code are ready and shows the
+right commands for anything missing. You can reopen it anytime via the ℹ️
+icon in the widget or the clock menu in the menu bar.
+
+
+4) Usage in 30 seconds
+----------------------
+- Type a project, optionally a description, then ▶ Start / ⏹ Stop.
+  Previously used projects appear as suggestions while typing.
+- Closing the window does NOT quit the app: it keeps running as a clock
+  icon in the menu bar – check the status there, reopen the widget, stop
+  the timer or quit the app.
+- If a timer is still running when you quit, nothing is lost: the time
+  keeps counting and resumes on the next start.
+- Buttons in the widget:
+    📌  keep window always on top
+    📓  knowledge base – notes on customers & projects
+    📊  history – entries by period, totals per project and issue
+    ⚙️  settings – database connection & language
+    ℹ️  system check & getting started

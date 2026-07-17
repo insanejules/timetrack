@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
 from . import __version__
 from .db import Database
 from .history import HistoryWindow
+from .i18n import tr
 from .knowledge import KnowledgeWindow
 from .settings import SettingsDialog
 
@@ -48,16 +49,16 @@ class TrackerWidget(QWidget):
         self.project = QComboBox()
         self.project.setEditable(True)
         self.project.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
-        self.project.lineEdit().setPlaceholderText("Projekt…")
+        self.project.lineEdit().setPlaceholderText(tr("Projekt…"))
         self._reload_projects()
 
         self.description = QLineEdit()
-        self.description.setPlaceholderText("Beschreibung…")
+        self.description.setPlaceholderText(tr("Beschreibung…"))
         self.description.returnPressed.connect(self._toggle)
 
         self.issue_combo = QComboBox()
         self.issue_combo.setToolTip(
-            "Optional: Arbeitszeit direkt auf ein GitHub-Issue buchen")
+            tr("Optional: Arbeitszeit direkt auf ein GitHub-Issue buchen"))
         self.project.currentTextChanged.connect(self._reload_issues)
         self._reload_issues()
 
@@ -74,33 +75,33 @@ class TrackerWidget(QWidget):
         self.today.setStyleSheet("color: gray;")
 
         # -- Buttons --
-        self.start_stop = QPushButton("▶  Start")
+        self.start_stop = QPushButton(tr("▶  Start"))
         self.start_stop.setMinimumHeight(36)
         self.start_stop.clicked.connect(self._toggle)
 
         notes_btn = QToolButton()
         notes_btn.setText("📓")
-        notes_btn.setToolTip("Knowledgebase (Notizen zu Kunden & Projekten)")
+        notes_btn.setToolTip(tr("Knowledgebase (Notizen zu Kunden & Projekten)"))
         notes_btn.clicked.connect(self._show_knowledge)
 
         history_btn = QToolButton()
         history_btn.setText("📊")
-        history_btn.setToolTip("Historie & Auswertung")
+        history_btn.setToolTip(tr("Historie & Auswertung"))
         history_btn.clicked.connect(self._show_history)
 
         settings_btn = QToolButton()
         settings_btn.setText("⚙️")
-        settings_btn.setToolTip("Einstellungen (Datenbank-Verbindung)")
+        settings_btn.setToolTip(tr("Einstellungen (Datenbank-Verbindung)"))
         settings_btn.clicked.connect(self._show_settings)
 
         info_btn = QToolButton()
         info_btn.setText("ℹ️")
-        info_btn.setToolTip("Systemcheck & Erste Schritte")
+        info_btn.setToolTip(tr("Systemcheck & Erste Schritte"))
         info_btn.clicked.connect(self.show_onboarding)
 
         self.pin_btn = QToolButton()
         self.pin_btn.setText("📌")
-        self.pin_btn.setToolTip("Fenster immer im Vordergrund halten")
+        self.pin_btn.setToolTip(tr("Fenster immer im Vordergrund halten"))
         self.pin_btn.setCheckable(True)
         self.pin_btn.toggled.connect(self._toggle_pin)
 
@@ -154,7 +155,8 @@ class TrackerWidget(QWidget):
     def _start(self):
         name = self.project.currentText().strip()
         if not name:
-            QMessageBox.warning(self, "TimeTrack", "Bitte zuerst ein Projekt angeben.")
+            QMessageBox.warning(self, "TimeTrack",
+                                tr("Bitte zuerst ein Projekt angeben."))
             return
         project_id = self.db.ensure_project(name)
         self.entry_id = self.db.start_entry(
@@ -170,7 +172,7 @@ class TrackerWidget(QWidget):
         self.ticker.stop()
         self.clock.setText("00:00:00")
         self.description.clear()
-        self.start_stop.setText("▶  Start")
+        self.start_stop.setText(tr("▶  Start"))
         self.project.setEnabled(True)
         self.issue_combo.setEnabled(True)
         self._reload_projects()
@@ -178,7 +180,7 @@ class TrackerWidget(QWidget):
         self._update_today()
 
     def _enter_running_state(self):
-        self.start_stop.setText("⏹  Stop")
+        self.start_stop.setText(tr("⏹  Stop"))
         self.project.setEnabled(False)
         self.issue_combo.setEnabled(False)
         self.ticker.start()
@@ -191,7 +193,7 @@ class TrackerWidget(QWidget):
                 self._update_today()
 
     def _update_today(self):
-        self.today.setText(f"Heute gesamt: {fmt_hms(self.db.today_seconds())}")
+        self.today.setText(tr("Heute gesamt: {}").format(fmt_hms(self.db.today_seconds())))
 
     # ---- Hilfen ---------------------------------------------------------
 
@@ -211,7 +213,7 @@ class TrackerWidget(QWidget):
         selected = self.issue_combo.currentData()
         self.issue_combo.blockSignals(True)
         self.issue_combo.clear()
-        self.issue_combo.addItem("— kein Issue —", None)
+        self.issue_combo.addItem(tr("— kein Issue —"), None)
         project_id = self.db.project_id_by_name(self.project.currentText())
         if project_id is not None:
             for issue in self.db.open_issues(project_id):
@@ -247,8 +249,9 @@ class TrackerWidget(QWidget):
         if self.entry_id is not None:
             QMessageBox.information(
                 self, "TimeTrack",
-                "Bitte zuerst den laufenden Timer stoppen – während ein Eintrag "
-                "läuft, kann die Datenbankverbindung nicht gewechselt werden.")
+                tr("Bitte zuerst den laufenden Timer stoppen – während ein "
+                   "Eintrag läuft, kann die Datenbankverbindung nicht "
+                   "gewechselt werden."))
             return
         dialog = SettingsDialog(self.db, self)
         if dialog.exec() == SettingsDialog.DialogCode.Accepted:
@@ -267,11 +270,13 @@ class TrackerWidget(QWidget):
         """Beenden vorbereiten; False, wenn der Nutzer abbricht."""
         if self.entry_id is not None:
             box = QMessageBox(self)
-            box.setWindowTitle("Timer läuft noch")
-            box.setText("Der Timer läuft noch. Was soll passieren?")
-            stop_btn = box.addButton("Stoppen && speichern", QMessageBox.ButtonRole.AcceptRole)
-            box.addButton("Weiterlaufen lassen", QMessageBox.ButtonRole.DestructiveRole)
-            cancel = box.addButton("Abbrechen", QMessageBox.ButtonRole.RejectRole)
+            box.setWindowTitle(tr("Timer läuft noch"))
+            box.setText(tr("Der Timer läuft noch. Was soll passieren?"))
+            stop_btn = box.addButton(tr("Stoppen && speichern"),
+                                     QMessageBox.ButtonRole.AcceptRole)
+            box.addButton(tr("Weiterlaufen lassen"),
+                          QMessageBox.ButtonRole.DestructiveRole)
+            cancel = box.addButton(tr("Abbrechen"), QMessageBox.ButtonRole.RejectRole)
             box.exec()
             if box.clickedButton() is cancel:
                 return False

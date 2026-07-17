@@ -5,6 +5,10 @@
 <h1 align="center">TimeTrack</h1>
 
 <p align="center">
+  🇩🇪 Deutsch&nbsp;·&nbsp;<a href="README.en.md">🇬🇧 English</a>
+</p>
+
+<p align="center">
   Kleines Zeiterfassungs-Widget für macOS – mit PostgreSQL-Backend,
   Knowledgebase und GitHub-Issue-Workflow über Claude Code.
 </p>
@@ -45,6 +49,9 @@ buchen lässt.
   Fehlende die passenden Befehle.
 - **Keine Credentials in der App** – DB-Passwort verschlüsselt im
   macOS-Schlüsselbund, GitHub/Claude über die lokalen CLI-Logins des Nutzers.
+- **Zweisprachig** – die App folgt der macOS-Sprache (Deutsch/Englisch),
+  umschaltbar in den Einstellungen (⚙️ → Sprache); Anleitungen liegen in
+  beiden Sprachen bei.
 
 ## Voraussetzungen
 
