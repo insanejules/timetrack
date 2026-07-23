@@ -6,6 +6,16 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 Jede Version ist als Git-Tag `vX.Y.Z` markiert; die aktuelle Versionsnummer
 steht in `timetrack/__init__.py`.
 
+## [0.6.0] – 2026-07-23
+
+### Geändert
+- Notizen werden nicht mehr automatisch gespeichert: Ein neuer
+  „Speichern“-Button (auch ⌘S) übernimmt Änderungen erst nach Bestätigung.
+  Beim Wechsel der Notiz bzw. des Kunden/Projekts oder beim Schließen des
+  Fensters fragt TimeTrack bei ungespeicherten Änderungen nach
+  (Speichern/Verwerfen) – versehentliche Änderungen landen so nicht mehr
+  ungefragt in der Datenbank.
+
 ## [0.5.0] – 2026-07-18
 
 ### Hinzugefügt

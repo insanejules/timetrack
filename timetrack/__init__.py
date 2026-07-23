@@ -1,6 +1,6 @@
 """TimeTrack – kleines Zeiterfassungs-Widget mit Postgres-Backend."""
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 
 ORG = "timetrack"
 APP = "TimeTrack"

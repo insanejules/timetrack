@@ -1,6 +1,7 @@
 """Knowledgebase: Notizen pro Kunde bzw. Projekt, Kunden-Zuordnung."""
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QComboBox,
     QHBoxLayout,
@@ -33,6 +34,7 @@ class KnowledgeWindow(QWidget):
         self.db = db
         self.current_note_id: int | None = None
         self._loading = False
+        self._dirty = False
 
         self.setWindowTitle(tr("TimeTrack – Knowledgebase"))
         self.resize(820, 520)
@@ -85,14 +87,28 @@ class KnowledgeWindow(QWidget):
 
         self.title_edit = QLineEdit()
         self.title_edit.setPlaceholderText(tr("Titel der Notiz…"))
+        self.title_edit.textChanged.connect(self._mark_dirty)
         self.body_edit = QPlainTextEdit()
         self.body_edit.setPlaceholderText(tr("Notiz…"))
+        self.body_edit.textChanged.connect(self._mark_dirty)
+
+        self.save_note_btn = QPushButton(tr("Speichern"))
+        self.save_note_btn.setToolTip(tr("Änderungen an der Notiz speichern (⌘S)"))
+        self.save_note_btn.setEnabled(False)
+        self.save_note_btn.clicked.connect(self._save_current_note)
+        QShortcut(QKeySequence.StandardKey.Save, self,
+                  activated=self._save_current_note)
 
         self.issue_btn = QPushButton(tr("Issue aus Notiz erstellen (mit Claude)…"))
         self.issue_btn.setToolTip(
             tr("Öffnet eine Claude-Code-Session, die aus dieser Notiz ein "
                "GitHub-Issue formuliert"))
         self.issue_btn.clicked.connect(self._create_issue)
+
+        editor_btns = QHBoxLayout()
+        editor_btns.addWidget(self.issue_btn)
+        editor_btns.addStretch(1)
+        editor_btns.addWidget(self.save_note_btn)
 
         right = QWidget()
         right_layout = QVBoxLayout(right)
@@ -101,7 +117,7 @@ class KnowledgeWindow(QWidget):
         right_layout.addWidget(self.customer_row)
         right_layout.addWidget(self.title_edit)
         right_layout.addWidget(self.body_edit, 1)
-        right_layout.addWidget(self.issue_btn)
+        right_layout.addLayout(editor_btns)
 
         splitter = QSplitter()
         splitter.addWidget(left)
@@ -118,7 +134,7 @@ class KnowledgeWindow(QWidget):
     # ---- Baum -----------------------------------------------------------
 
     def reload(self):
-        self._save_current_note()
+        self._confirm_unsaved()
         self._loading = True
         self.tree.clear()
 
@@ -174,7 +190,7 @@ class KnowledgeWindow(QWidget):
     def _selection_changed(self, current: QTreeWidgetItem | None, _prev=None):
         if self._loading:
             return
-        self._save_current_note()
+        self._confirm_unsaved()
         self.current_note_id = None
 
         kind = current.data(0, ROLE_KIND) if current else None
@@ -256,7 +272,7 @@ class KnowledgeWindow(QWidget):
         self._set_editor_enabled(self.note_list.currentItem() is not None)
 
     def _note_selected(self, current: QListWidgetItem | None, _prev=None):
-        self._save_current_note()
+        self._confirm_unsaved()
         self._load_selected_note()
 
     def _load_selected_note(self):
@@ -275,13 +291,14 @@ class KnowledgeWindow(QWidget):
         self.title_edit.setText(note["title"])
         self.body_edit.setPlainText(note["body"])
         self._loading = False
+        self._dirty = False
         self._set_editor_enabled(True)
 
     def _new_note(self):
         target = self._current_target()
         if target is None:
             return
-        self._save_current_note()
+        self._confirm_unsaved()
         note_id = self.db.create_note(**target, title=tr("Neue Notiz"))
         self._reload_notes(select_id=note_id)
         self.title_edit.selectAll()
@@ -313,8 +330,14 @@ class KnowledgeWindow(QWidget):
                 f"\n→ Issue #{issue['number']} ({issue['repo']}): {issue['url']}")
             self._save_current_note()
 
+    def _mark_dirty(self):
+        if self._loading or self.current_note_id is None:
+            return
+        self._dirty = True
+        self.save_note_btn.setEnabled(True)
+
     def _save_current_note(self):
-        if self.current_note_id is None or self._loading:
+        if self.current_note_id is None or self._loading or not self._dirty:
             return
         self.db.update_note(
             self.current_note_id,
@@ -324,6 +347,31 @@ class KnowledgeWindow(QWidget):
         item = self.note_list.currentItem()
         if item is not None and item.data(ROLE_ID) == self.current_note_id:
             item.setText(self.title_edit.text().strip() or tr("(ohne Titel)"))
+        self._dirty = False
+        self.save_note_btn.setEnabled(False)
+
+    def _confirm_unsaved(self):
+        """Fragt bei ungespeicherten Änderungen nach, bevor sie verloren gehen."""
+        if not self._dirty or self.current_note_id is None:
+            return
+        box = QMessageBox(self)
+        box.setWindowTitle(tr("Ungespeicherte Änderungen"))
+        box.setText(tr("Die Notiz hat ungespeicherte Änderungen. "
+                       "Sollen sie gespeichert werden?"))
+        save_btn = box.addButton(tr("Speichern"), QMessageBox.ButtonRole.AcceptRole)
+        box.addButton(tr("Verwerfen"), QMessageBox.ButtonRole.DestructiveRole)
+        box.setDefaultButton(save_btn)
+        box.exec()
+        if box.clickedButton() is save_btn:
+            self._save_current_note()
+            return
+        self._dirty = False
+        self.save_note_btn.setEnabled(False)
+        # Verworfene Änderungen aus dem Editor entfernen, falls die Notiz
+        # weiterhin angezeigt wird (z. B. beim Ausblenden des Fensters).
+        item = self.note_list.currentItem()
+        if item is not None and item.data(ROLE_ID) == self.current_note_id:
+            self._load_selected_note()
 
     def _clear_editor(self):
         self._loading = True
@@ -331,10 +379,13 @@ class KnowledgeWindow(QWidget):
         self.title_edit.clear()
         self.body_edit.clear()
         self._loading = False
+        self._dirty = False
+        self.save_note_btn.setEnabled(False)
 
     def _set_editor_enabled(self, enabled: bool):
         self.title_edit.setEnabled(enabled)
         self.body_edit.setEnabled(enabled)
+        self.save_note_btn.setEnabled(enabled and self._dirty)
         self.del_note_btn.setEnabled(enabled)
         self.new_note_btn.setEnabled(self._current_target() is not None)
         target = self._current_target() or {}
@@ -345,9 +396,9 @@ class KnowledgeWindow(QWidget):
                 tr("Issues brauchen ein Projekt – diese Notiz hängt an einem Kunden"))
 
     def closeEvent(self, event):
-        self._save_current_note()
+        self._confirm_unsaved()
         event.accept()
 
     def hideEvent(self, event):
-        self._save_current_note()
+        self._confirm_unsaved()
         super().hideEvent(event)

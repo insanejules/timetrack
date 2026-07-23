@@ -94,6 +94,12 @@ EN = {
     "Neue Notiz": "New note",
     "Notiz löschen": "Delete note",
     "Diese Notiz wirklich löschen?": "Really delete this note?",
+    "Änderungen an der Notiz speichern (⌘S)":
+        "Save changes to the note (⌘S)",
+    "Ungespeicherte Änderungen": "Unsaved changes",
+    "Die Notiz hat ungespeicherte Änderungen. Sollen sie gespeichert werden?":
+        "This note has unsaved changes. Do you want to save them?",
+    "Verwerfen": "Discard",
     "Issue aus Notiz erstellen (mit Claude)…":
         "Create issue from note (with Claude)…",
     "Öffnet eine Claude-Code-Session, die aus dieser Notiz ein GitHub-Issue "
